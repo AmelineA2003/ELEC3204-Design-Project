@@ -13,6 +13,7 @@ int pwm;
 int duty_cycle;
 
 bool IN3, IN4;
+String user_input;
 
 void setup() {
   // Initialize LCD
@@ -45,7 +46,7 @@ void loop() {
   
   if (Serial.available())
   {
-    String user_input = Serial.readStringUntil("\n"); 
+    user_input = Serial.readStringUntil("\n"); 
   }
   
   if (digitalRead(5) || user_input == "up"){
