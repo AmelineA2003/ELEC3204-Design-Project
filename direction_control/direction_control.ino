@@ -51,6 +51,10 @@ void loop() {
     digitalWrite(10, HIGH); 
     digitalWrite(9, LOW); 
   }
+  else if (digitalRead(7)){
+    digitalWrite(10, LOW); 
+    digitalWrite(9, LOW); 
+  }
 
   if (digitalRead(rstbtn) == LOW) {
     resetCounter();
@@ -89,4 +93,3 @@ void resetCounter() {
   counter = 0;
   interrupts();
 }
-
