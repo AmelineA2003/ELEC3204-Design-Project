@@ -42,18 +42,21 @@ void setup() {
 }
 
 void loop() {
-  distance = ((2*pi*R)/N) * getCounter();
-  Serial.println(distance);
   
-  if (digitalRead(5)){
+  if (Serial.available())
+  {
+    String user_input = Serial.readStringUntil("\n"); 
+  }
+  
+  if (digitalRead(5) || user_input == "up"){
     IN3 = LOW;
     IN4 = HIGH;
   }
-  else if (digitalRead(6)){
+  else if (digitalRead(6) || user_input == "down"){
     IN3 = HIGH;
     IN4 = LOW;
   }
-  else if (digitalRead(7)){
+  else if (digitalRead(7) || user_input == "brake"){
     IN3 = LOW;
     IN4 = LOW; 
   }
