@@ -5,15 +5,14 @@
 int counter = 0;
 const float pi = 3.14; // Pi value 
 
-const int R = 7;  //Radius of the wheel from center to edge
+const int R = 1;  //Radius of the wheel from center to edge
 const int N = 40; //no of steps for one rotation
-float distance = 0;
+float c_distance = 0;
+float required_displacement = 0;
 
 int pwm;
 int duty_cycle;
 
-int current_state;
-int next_state;
 int K;
 
 void setup() {
@@ -40,67 +39,47 @@ void setup() {
   pinMode(outputB, INPUT);
   pinMode(rstbtn, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(outputA), readEncoder, FALLING);
-
-  current_state = 0;
-  next_state = 0;
 }
 
 void loop() {
-  distance = ((2*pi*R)/N) * getCounter();
-  Serial.println(distance);
+  c_distance = ((2*pi*R)/N) * getCounter();
+  Serial.println(c_distance);
   
   if (digitalRead(5)){
     Serial.println("Ground"); 
-    next_state = 0;
+    required_displacement = 0; 
   }
   else if (digitalRead(6)){
     Serial.println("Level 1"); 
-    next_state = 1;
+    required_displacement = 15; 
   }
   else if (digitalRead(7)){
     Serial.println("Level 2"); 
-    next_state = 2;
+    required_displacement = 30;
   }
 
-  
-  case(next_state){
-    case 0:
-      required_displacement = 0;
-    break;
-
-    case 1:
-      required_displacement = 10
-    break;
-
-    case 2:
-      required_displacement = 20;
-    break;
+  if ( (c_distance - required_displacement) > 0){
+    digitalWrite(10, HIGH);
+    digitalWrite(9, LOW);
+  }
+  else {
+    digitalWrite(10, LOW);
+    digitalWrite(9, HIGH);
   }
 
-  if ( (next_state - current_state) > 0){
-    digitalWrite(10, LOW); 
-    digitalWrite(9, HIGH); 
-  }
-  else if ( (next_state - current_state) < 0){
-    digitalWrite(10, HIGH); 
-    digitalWrite(9, LOW); 
-  }
-
-  while ( distance != required_displacement){
+  while ( c_distance != required_displacement){
     duty_cycle = 100;
     pwm = map(0, 100, 0, 255, duty_cycle);
     analogWrite(11, pwm);
     delay(5);
   }
 
-  digitalWrite(10, LOW);
-  digitalWrite(9, LOW);
+
   
   if (digitalRead(rstbtn) == LOW) {
     resetCounter();
   }
-
-  current_state = next_state;
+  delay(5);
 }
 
 
@@ -130,4 +109,3 @@ void resetCounter() {
   counter = 0;
   interrupts();
 }
-
