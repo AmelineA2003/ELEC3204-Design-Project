@@ -13,14 +13,19 @@
 
 int counter = 0;
 const float pi = 3.14;
-const int N = 40;
+const int N = 48; //our encoder has 48 counts per revolution
 const int R = 3;
 float c_displacement = 0;
 float req_disp = 0;
 
 float curr_diff;
 float prev_diff;
+float prev_displacement;
 
+float c_velocity;
+float prev_velocity;
+
+int time_step = 5;
 
 void setup() {
 
@@ -49,13 +54,17 @@ void setup() {
 
   attachInterrupt(digitalPinToInterrupt(OUTPUTA), readEncoder, FALLING);
   
-  analogWrite(ENB, 255);
+  analogWrite(ENB, 200);
 }
 
 void loop() {
+
   
   c_displacement = ((2*pi*R)/N) * getCounter();
-  Serial.println(c_displacement);
+  Serial.print(c_displacement);
+  Serial.print("    ");
+  c_velocity = (c_displacement - prev_displacement) / time_step;
+  Serial.println(c_velocity);
 
   if (c_displacement > 2600){
     digitalWrite(IN4, LOW); 
@@ -77,11 +86,11 @@ void loop() {
     Serial.print("  GND_Button    ");
   }
   else if (digitalRead(LVL1_BUTTON) == HIGH){
-    req_disp = 1700;
+    req_disp = 1000;
     Serial.print("  LVL1_Button   ");
   }
   else if (digitalRead(LVL2_BUTTON) == HIGH){
-    req_disp = 3300; 
+    req_disp = 2000; 
     Serial.print("  LVL2_Button   ");
   }
   else{
@@ -102,6 +111,10 @@ void loop() {
     digitalWrite(IN3, LOW);     
   }
 
+  prev_displacement = c_displacement;
+  prev_velocity = c_velocity;
+  
+  delay(time_step);
 }
 
 
@@ -128,7 +141,7 @@ void override(){
       digitalWrite(9, LOW); 
     }
   }
-  
+
 }
 
 
