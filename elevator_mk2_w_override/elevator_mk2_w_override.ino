@@ -1,6 +1,7 @@
 #define OUTPUTA 2
 #define OUTPUTB 3
 
+#define OVERRIDE_BUTTON 4
 #define GND_BUTTON 5
 #define LVL1_BUTTON 6
 #define LVL2_BUTTON 7
@@ -44,6 +45,7 @@ void setup() {
   pinMode(GND_BUTTON,INPUT); 
   pinMode(LVL1_BUTTON,INPUT); 
   pinMode(LVL2_BUTTON,INPUT); 
+  pinMode(OVERRIDE_BUTTON,INPUT);
 
   attachInterrupt(digitalPinToInterrupt(OUTPUTA), readEncoder, FALLING);
   
@@ -51,12 +53,9 @@ void setup() {
 }
 
 void loop() {
-
-  Serial.println("automated mode");
   
   c_displacement = ((2*pi*R)/N) * getCounter();
-    
-//  Serial.println(c_displacement);
+  Serial.println(c_displacement);
 
   if (c_displacement > 2600){
     digitalWrite(IN4, LOW); 
@@ -68,7 +67,7 @@ void loop() {
     digitalWrite(IN3, LOW); 
   }
 
-  if (digitalRead(GND_BUTTON) == HIGH && digitalRead(LVL2_BUTTON) == HIGH){
+  if (digitalRead(OVERRIDE_BUTTON) == HIGH){
     delay(1000);
     override();
   }
@@ -82,7 +81,7 @@ void loop() {
     Serial.print("  LVL1_Button   ");
   }
   else if (digitalRead(LVL2_BUTTON) == HIGH){
-    req_disp = 2500; 
+    req_disp = 2900; 
     Serial.print("  LVL2_Button   ");
   }
   else{
@@ -108,13 +107,18 @@ void override(){
   Serial.println("override triggered: manual mode");
   while(1)
   {
-    if (digitalRead(GND_BUTTON) == HIGH && digitalRead(LVL2_BUTTON) == HIGH){
+    c_displacement = ((2*pi*R)/N) * getCounter();
+    Serial.println(c_displacement);
+    
+    if (digitalRead(OVERRIDE_BUTTON) == HIGH){
+      resetCounter();
+      Serial.println("automated mode");
+      digitalWrite(10, LOW); 
+      digitalWrite(9, LOW); 
       break;
     }
-
-    while ( 
     
-    if (digitalRead(GND_BUTTON))
+    if (digitalRead(LVL2_BUTTON))
     {
       digitalWrite(10, LOW); 
       digitalWrite(9, HIGH); 
@@ -124,10 +128,10 @@ void override(){
       digitalWrite(10, HIGH); 
       digitalWrite(9, LOW); 
     }
-    else if (digitalRead(LVL2_BUTTON))
+    else if (digitalRead(GND_BUTTON))
     {
-    digitalWrite(10, LOW); 
-    digitalWrite(9, LOW); 
+      digitalWrite(10, LOW); 
+      digitalWrite(9, LOW); 
     }
     
   }
