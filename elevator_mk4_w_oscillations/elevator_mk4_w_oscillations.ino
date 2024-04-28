@@ -24,6 +24,7 @@ float prev_displacement;
 
 float c_velocity;
 float prev_velocity;
+const float MAX_VELOCITY = 2;
 
 int time_step = 5;
 int calc_counter = 0;
@@ -56,8 +57,8 @@ void setup() {
   pinMode(OVERRIDE_BUTTON,INPUT);
 
   attachInterrupt(digitalPinToInterrupt(OUTPUTA), readEncoder, FALLING);
-  
-  analogWrite(ENB, 200);
+
+    analogWrite(ENB, 200);
 }
 
 void loop() {
@@ -73,9 +74,12 @@ void loop() {
   float speedError = desiredSpeed - c_velocity;
   float pwmSignal = Kp_speed * speedError;
   pwmSignal = constrain(pwmSignal, 151, 255);
-  analogWrite(ENB, pwmSignal);
+  // int pwmSignal = calculatePWMSignal(c_velocity);
 
-  String words = "Displacement: " + String(c_displacement, 2) + ", Velocity: " + String(c_velocity, 2) + ", PWM Signal: " + String(pwmSignal);
+  analogWrite(ENB, 200);
+
+
+  String words = "Displacement: " + String(c_displacement, 2) + ", Velocity: " + String(c_velocity, 2);
 
   Serial.println(words);
   
@@ -140,8 +144,12 @@ void override(){
   while(1)
   {
     c_displacement = ((2*pi*R)/N) * getCounter();
-    Serial.println(c_displacement);
-    
+    c_velocity = (c_displacement - prev_displacement) / time_step;
+    // Serial.println(c_displacement, c_velocity);
+    String words = "Displacement: " + String(c_displacement, 2) + ", Velocity: " + String(c_velocity, 2);
+
+    Serial.println(words);
+
     if (digitalRead(LVL2_BUTTON))
     {
       digitalWrite(10, LOW); 
@@ -157,8 +165,27 @@ void override(){
       digitalWrite(10, LOW); 
       digitalWrite(9, LOW); 
     }
+    prev_displacement = c_displacement;
+    prev_velocity = c_velocity;
   }
 
+}
+
+int calculatePWMSignal(float currentVelocity) {
+  float pwmSignal = 255; // Start with max PWM signal
+  
+  // If the current velocity is greater than the max allowed, reduce PWM to slow down
+  if (abs(currentVelocity) > MAX_VELOCITY) {
+    // Scale down PWM based on how much the current velocity exceeds the max velocity
+    pwmSignal = map(abs(currentVelocity), MAX_VELOCITY, 1.5 * MAX_VELOCITY, 151, 255);
+    pwmSignal = constrain(pwmSignal, 151, 255); // Ensure PWM is within acceptable range
+  }
+  Serial.println(pwmSignal);
+
+  // If moving too fast in the negative direction, this part of code can be adjusted similarly
+  // Here, pwmSignal must control direction accordingly 
+
+  return pwmSignal;
 }
 
 
