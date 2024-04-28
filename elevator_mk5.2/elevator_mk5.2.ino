@@ -13,7 +13,7 @@
 
 int counter = 0;
 const float pi = 3.14;
-const int N = 48; //our encoder has 48 counts per revolution
+const int N = 12; //our encoder has 48 counts per revolution
 const int R = 3;
 float c_displacement = 0;
 float req_disp = 0;
@@ -22,18 +22,25 @@ float curr_diff;
 float prev_diff;
 float prev_displacement;
 
+float c_time, prev_time, t_delta;
+float c_rpm;
 float c_velocity;
 float prev_velocity;
-const float MAX_VELOCITY = 2;
 
 int time_step = 5;
 int calc_counter = 0;
-int Kp_position = 1;  // Proportional gain for position
-int Kp_speed = 10;  // Proportional gain for speed
+
+const float targetSpeed = 9.5;  // This should be set according to your system requirements
+const float Kp = 20;  // This value needs to be tuned for your system
+
+// Current speed and control output
+// float currentSpeed;
+float controlOutput;
+
 
 void setup() {
 
-  
+  prev_time = micros();
   // Initialize LCD
   req_disp = 0;
   Serial.begin(9600);
@@ -58,34 +65,48 @@ void setup() {
 
   attachInterrupt(digitalPinToInterrupt(OUTPUTA), readEncoder, FALLING);
 
-    analogWrite(ENB, 10);
+    // analogWrite(ENB, 180);
 }
 
 void loop() {
 
-  
   c_displacement = ((2*pi*R)/N) * getCounter();
+  c_velocity = (c_displacement - prev_displacement) / t_delta;
+  c_rpm = 1/(t_delta * 60E6);
 
-  c_velocity = (c_displacement - prev_displacement) / time_step;
+  // c_velocity = (c_displacement - prev_displacement) / time_step;
 
-  float  heighterror = req_disp - c_displacement;
-  float desiredSpeed = Kp_position * heighterror;
+  // prev_displacement = c_displacement;
 
-  float speedError = desiredSpeed - c_velocity;
-  float pwmSignal = Kp_speed * speedError;
-  pwmSignal = constrain(pwmSignal, 151, 255);
-  // int pwmSignal = calculatePWMSignal(c_velocity);
+  // Calculate the error between target speed and current speed
+  float speedError = targetSpeed - abs(c_velocity);
 
-  analogWrite(ENB, 200);
+  // Calculate control output (adjust motor PWM)
+  controlOutput = abs(Kp * speedError);
 
+  int PWM = 200 + controlOutput;
+  PWM = constrain(PWM, 162, 255);
+  // Serial.println(controlOutput);
 
-  String words = "Displacement: " + String(c_displacement, 2) + ", Velocity: " + String(c_velocity, 2);
+  // Constrain the control output to PWM bounds
+  // controlOutput = constrain(controlOutput, 162, 255);
+
+  // Serial.println(PWM);  
+  // Apply the control output to the motor
+  // analogWrite(ENB, abs(int(controlOutput)));
+
+  analogWrite(ENB, abs(int(PWM)));
+
+  // analogWrite(ENB, 180);
+
+  String words = "Displacement: " + String(c_displacement, 2) + ", Velocity: " + String(c_velocity, 2) + ", RPM: " + String(c_rpm, 2) + ", t_delta: " + String(t_delta, 2);
+
 
   Serial.println(words);
   
 //  Serial.print("Displacement: %0.2f, Velocity: %0.2f, PWM Signal: %0.2f", c_displacement, c_velocity, pwmSignal);
 
-  if (c_displacement > 3100){
+  if (c_displacement > 13300){
     digitalWrite(IN4, LOW); 
     digitalWrite(IN3, LOW); 
   }
@@ -102,22 +123,22 @@ void loop() {
 
   if (digitalRead(GND_BUTTON) == HIGH){
     req_disp = 0;
-    Serial.print("  GND_Button    ");
+    Serial.println("  GND_Button    ");
   }
   else if (digitalRead(LVL1_BUTTON) == HIGH){
-    req_disp = 1600;
-    Serial.print("  LVL1_Button   ");
+    req_disp = 6000;
+    Serial.println("  LVL1_Button   ");
   }
   else if (digitalRead(LVL2_BUTTON) == HIGH){
-    req_disp = 2750; 
-    Serial.print("  LVL2_Button   ");
+    req_disp = 10000; 
+    Serial.println("  LVL2_Button   ");
   }
   else{
     //do nothing
   }
 
   
-  if (abs(c_displacement - req_disp) < 15){
+  if (abs(c_displacement - req_disp) < 100){
     digitalWrite(IN4, LOW); 
     digitalWrite(IN3, LOW); 
   }
@@ -134,7 +155,6 @@ void loop() {
   prev_velocity = c_velocity;
 
 //  calc_count++;
-  
   delay(time_step);
 }
 
@@ -143,10 +163,12 @@ void override(){
   Serial.println("override triggered: manual mode");
   while(1)
   {
+
+    c_rpm = 1/(t_delta * 60E6);
     c_displacement = ((2*pi*R)/N) * getCounter();
     c_velocity = (c_displacement - prev_displacement) / time_step;
     // Serial.println(c_displacement, c_velocity);
-    String words = "Displacement: " + String(c_displacement, 2) + ", Velocity: " + String(c_velocity, 2);
+    String words = "Displacement: " + String(c_displacement, 2) + ", Velocity: " + String(c_velocity, 2) + ", RPM: " + String(c_rpm, 2) + ", t_delta: " + String(t_delta,8);
 
     Serial.println(words);
 
@@ -171,24 +193,6 @@ void override(){
 
 }
 
-int calculatePWMSignal(float currentVelocity) {
-  float pwmSignal = 255; // Start with max PWM signal
-  
-  // If the current velocity is greater than the max allowed, reduce PWM to slow down
-  if (abs(currentVelocity) > MAX_VELOCITY) {
-    // Scale down PWM based on how much the current velocity exceeds the max velocity
-    pwmSignal = map(abs(currentVelocity), MAX_VELOCITY, 1.5 * MAX_VELOCITY, 151, 255);
-    pwmSignal = constrain(pwmSignal, 151, 255); // Ensure PWM is within acceptable range
-  }
-  Serial.println(pwmSignal);
-
-  // If moving too fast in the negative direction, this part of code can be adjusted similarly
-  // Here, pwmSignal must control direction accordingly 
-
-  return pwmSignal;
-}
-
-
 int getCounter() {
   int result;
   noInterrupts();
@@ -205,8 +209,15 @@ void readEncoder() {
   if (bValue == LOW) {
     counter--; // Counterclockwise
   }
-}
 
+  if (counter % 48*4 == 0)
+  {
+    // Serial.println(counter);
+    c_time = micros();
+    t_delta = (c_time - prev_time)/4;
+    prev_time = c_time;
+  }
+}
 void resetCounter() {
   noInterrupts();
   counter = 0;
