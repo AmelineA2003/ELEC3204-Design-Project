@@ -71,8 +71,8 @@ void setup() {
 void loop() {
 
   c_displacement = ((2*pi*R)/N) * getCounter();
-  c_velocity = (c_displacement - prev_displacement) / t_delta;
-  c_rpm = 1/(t_delta * 60E6);
+  //c_velocity = (c_displacement - prev_displacement) / t_delta;
+  //c_rpm = 1/(t_delta * 60E6);
 
   // c_velocity = (c_displacement - prev_displacement) / time_step;
 
